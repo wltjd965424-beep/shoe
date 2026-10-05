@@ -1,484 +1,126 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트 신발 쇼케이스 & 당근마켓 최적화 생성기</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        body { font-family: 'Pretendard', sans-serif; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 신발 쇼핑몰</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8f9fa; color: #333; padding: 20px; }
+    header { text-align: center; margin-bottom: 30px; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    h1 { font-size: 1.8rem; color: #111; margin-bottom: 5px; }
+    p.sub { color: #666; font-size: 0.9rem; }
+
+    /* 상품 목록 그리드 */
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
+    .product-card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; transition: transform 0.2s; }
+    .product-card:hover { transform: translateY(-5px); }
+    .product-img { width: 100%; height: 220px; object-fit: cover; background-color: #eee; }
+    .product-info { padding: 15px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+    .product-title { font-size: 1.05rem; font-weight: bold; color: #222; }
+    .product-price { font-size: 1.1rem; color: #e63946; font-weight: bold; }
+    
+    /* 구매/문의 버튼 (당근마켓 손님용) */
+    .btn-buy { display: block; text-align: center; background: #2f3438; color: #fff; padding: 10px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; margin-top: auto; font-weight: bold; }
+    .btn-buy:hover { background: #000; }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen pb-20">
+<body>
 
-    <!-- Header / Admin Bar -->
-    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-md">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-shoe-prints text-indigo-400 text-xl"></i>
-                <span class="font-bold text-lg tracking-tight" id="siteTitle">SHOES MARKET</span>
-            </div>
-            <div class="flex items-center space-x-3">
-                <button id="resetBtn" onclick="resetData()" class="hidden text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition">
-                    <i class="fa-solid fa-rotate-left mr-1"></i>전체 초기화
-                </button>
-                <button id="editToggleBtn" onclick="toggleEditMode()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center space-x-1.5 transition shadow">
-                    <i class="fa-solid fa-lock" id="lockIcon"></i>
-                    <span id="editToggleText">관리자 로그인</span>
-                </button>
-            </div>
-        </div>
-    </header>
+  <header>
+    <h1>👟 우리동네 신발 특가샵</h1>
+    <p class="sub">마음에 드는 상품을 구경하시고 채팅으로 문의주세요! (편의점 택배 가능)</p>
+  </header>
 
-    <!-- Main Banner Section -->
-    <section class="bg-slate-900 text-white border-b border-slate-800 py-12 px-4">
-        <div class="max-w-6xl mx-auto text-center space-y-4">
-            <span id="bannerBadge" class="inline-block bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-base md:text-lg px-5 py-2 rounded-full font-bold shadow-sm">사장님이 미쳤어요</span>
-            <h1 id="bannerHeader" class="text-3xl md:text-5xl font-extrabold tracking-tight py-1">PREMIUM SHOES STORE</h1>
-            <p id="bannerDesc" class="text-slate-200 text-lg md:text-xl font-bold max-w-2xl mx-auto leading-relaxed">어디에서도 구매할수 없는 이 가격 실화야?!!</p>
-        </div>
-    </section>
+  <!-- 상품들이 자동으로 뜰 공간 -->
+  <div class="product-grid" id="product-list">
+    <p style="text-align: center; grid-column: 1/-1; color: #888; padding: 40px;">상품을 불러오는 중입니다...</p>
+  </div>
 
-    <!-- Category Filter Bar -->
-    <main class="max-w-6xl mx-auto px-4 mt-8">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
-            <div class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none" id="categoryContainer"></div>
-            <div class="flex items-center space-x-2 pl-2">
-                <button id="addCatBtn" onclick="addCategory()" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs px-3 py-2 rounded-lg font-medium transition whitespace-nowrap">
-                    <i class="fa-solid fa-plus mr-1"></i>카테고리 추가
-                </button>
-                <button id="addShoeBtn" onclick="openShoeModal()" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3.5 py-2 rounded-lg font-semibold transition whitespace-nowrap shadow">
-                    <i class="fa-solid fa-plus mr-1"></i>새 신발 추가
-                </button>
-            </div>
-        </div>
+  <script>
+    // 임시 샘플 상품 데이터 (나중에 구글 시트나 편한 데이터로 연동 가능합니다)
+    // 구글 시트에서 상품 데이터 불러오기
+    const csvUrl = https://docs.google.com/spreadsheets/d/e/2PACX-1vTu9X_4yiuuTGThA4T8m7B0SszDQx4Pgde4tuFoZENxyRb-DiBCd0IJRBKl_qbRRBr2B3Eyz58lmxsO/pubhtml;
+    const productList = document.getElementById('product-list');
 
-        <!-- Shoe Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="shoeGrid"></div>
-    </main>
+    async function loadProducts() {
+      try {
+        const response = await fetch(csvUrl);
+        const data = await response.text();
+        
+        // CSV 데이터 분석
+        const rows = data.split('\n').slice(1); // 첫 번째 줄(제목) 제외
+        const products = [];
 
-    <!-- Shoe Detail Modal -->
-    <div id="detailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="relative bg-slate-100 h-64 md:h-80 overflow-hidden">
-                <img id="detailImage" class="w-full h-full object-cover">
-                <button onclick="closeDetailModal()" class="absolute top-3 right-3 bg-slate-900/60 hover:bg-slate-900 text-white w-8 h-8 rounded-full flex items-center justify-center transition">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-                <span id="detailBrand" class="absolute bottom-3 left-3 bg-slate-900/80 text-white text-xs px-3 py-1 rounded-full font-medium backdrop-blur-sm"></span>
-            </div>
-            <div class="p-6 overflow-y-auto space-y-4">
-                <div>
-                    <h3 id="detailName" class="text-xl font-bold text-slate-900"></h3>
-                    <p id="detailPrice" class="text-2xl font-extrabold text-indigo-600 mt-1"></p>
-                </div>
-                <div class="bg-slate-50 p-4 rounded-xl space-y-2 border border-slate-100 text-xs">
-                    <div class="flex justify-between"><span class="text-slate-500">카테고리:</span><span id="detailCategory" class="font-semibold text-slate-800"></span></div>
-                    <div class="flex justify-between"><span class="text-slate-500">사이즈:</span><span id="detailSize" class="font-semibold text-slate-800"></span></div>
-                    <div class="flex justify-between"><span class="text-slate-500">신발 상태:</span><span id="detailStatus" class="font-semibold text-slate-800"></span></div>
-                </div>
-                <div>
-                    <h4 class="text-xs font-bold text-slate-700 mb-1">📝 상품 상세설명</h4>
-                    <p id="detailDesc" class="text-xs text-slate-600 leading-relaxed bg-white border border-slate-200 p-3 rounded-lg whitespace-pre-line"></p>
-                </div>
-            </div>
-            <div class="p-4 border-t border-slate-100 bg-slate-50 flex space-x-2">
-                <button id="detailCarrotBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-3 rounded-xl transition flex items-center justify-center space-x-2 shadow">
-                    <i class="fa-solid fa-carrot text-base"></i>
-                    <span>이 신발 당근마켓 글 생성하기</span>
-                </button>
-            </div>
-        </div>
-    </div>
+        rows.forEach(row => {
+          if (!row.trim()) return;
+          // 콤마로 데이터 분리
+          const cols = row.split(',');
+          if (cols.length >= 3) {
+            products.push({
+              title: cols[0].replace(/"/g, ''),
+              price: cols[1].replace(/"/g, ''),
+              image: cols[2].replace(/"/g, '').trim()
+            });
+          }
+        });
 
-    <!-- Carrot Post Generator Modal -->
-    <div id="carrotModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="bg-orange-500 text-white px-5 py-4 flex justify-between items-center">
-                <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-carrot text-xl"></i>
-                    <h3 class="font-bold text-lg">당근마켓 게시글 자동 생성</h3>
-                </div>
-                <button onclick="closeCarrotModal()" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <div class="p-5 overflow-y-auto space-y-4">
-                <div>
-                    <label class="text-xs font-bold text-slate-500 mb-1 block">글 제목 (복사용)</label>
-                    <div class="flex space-x-2">
-                        <input id="carrotTitle" type="text" readonly class="w-full bg-slate-100 border border-slate-200 text-xs p-2.5 rounded-lg font-medium text-slate-800">
-                        <button onclick="copyToClipboard('carrotTitle')" class="bg-slate-800 hover:bg-slate-700 text-white text-xs px-3 py-2 rounded-lg font-medium whitespace-nowrap">복사</button>
-                    </div>
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-500 mb-1 block">글 본문 (노출 키워드 포함)</label>
-                    <textarea id="carrotBody" readonly rows="12" class="w-full bg-slate-100 border border-slate-200 text-xs p-3 rounded-lg font-mono text-slate-700 leading-relaxed resize-none"></textarea>
-                </div>
-            </div>
-            <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end space-x-2">
-                <button onclick="copyToClipboard('carrotBody')" class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition">
-                    <i class="fa-solid fa-copy mr-1.5"></i>본문 전체 복사
-                </button>
-            </div>
-        </div>
-    </div>
+        renderProducts(products);
+      } catch (err) {
+        console.error(err);
+        productList.innerHTML = '<p style="text-align: center; grid-column: 1/-1; color: red;">상품을 불러오는 중 오류가 발생했습니다.</p>';
+      }
+    }
 
-    <!-- Add/Edit Shoe Modal -->
-    <div id="shoeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
-            <div class="bg-slate-900 text-white px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-lg" id="modalTitle">새 신발 등록</h3>
-                <button onclick="closeShoeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <form id="shoeForm" onsubmit="saveShoe(event)" class="p-5 space-y-3">
-                <input type="hidden" id="shoeId">
-                <div>
-                    <label class="text-xs font-bold text-slate-600 block mb-1">카테고리</label>
-                    <select id="shoeCategory" class="w-full border border-slate-300 rounded-lg text-xs p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"></select>
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-600 block mb-1">브랜드명 (예: 나이키)</label>
-                    <input id="shoeBrand" type="text" required class="w-full border border-slate-300 rounded-lg text-xs p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-600 block mb-1">모델명 (예: 에어포스 1 '07)</label>
-                    <input id="shoeName" type="text" required class="w-full border border-slate-300 rounded-lg text-xs p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-xs font-bold text-slate-600 block mb-1">가격 (원)</label>
-                        <input id="shoePrice" type="number" required class="w-full border border-slate-300 rounded-lg text-xs p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-600 block mb-1">사이즈 (mm)</label>
-                        <input id="shoeSize" type="text" required placeholder="예: 270" class="w-full border border-slate-300 rounded-lg text-xs p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-600 block mb-1">신발 상태</label>
-                    <input id="shoeStatus" type="text" required placeholder="예: 미착용 새상품 / 실착 1회" class="w-full border border-slate-300 rounded-lg text-xs p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-600 block mb-1">상세 설명 (선택)</label>
-                    <textarea id="shoeDesc" rows="3" placeholder="신발 구성품, 세탁 상태 등 자유롭게 입력" class="w-full border border-slate-300 rounded-lg text-xs p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none resize-none"></textarea>
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-600 block mb-1">📁 이미지 URL 또는 업로드</label>
-                    <input id="shoeImageFile" type="file" accept="image/*" onchange="handleImageUpload(event)" class="w-full border border-slate-300 rounded-lg text-xs p-2 focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50 mb-1">
-                    <input id="shoeImage" type="text" placeholder="https://..." class="w-full border border-slate-300 rounded-lg text-xs p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <div id="imagePreview" class="mt-2 hidden flex justify-center">
-                        <img id="previewImg" class="h-20 w-20 object-cover rounded-lg border border-slate-200 shadow-sm">
-                    </div>
-                </div>
-                <div class="pt-2 flex justify-end space-x-2">
-                    <button type="button" onclick="closeShoeModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs px-4 py-2 rounded-lg font-medium">취소</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2 rounded-lg font-bold shadow">저장하기</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    function renderProducts(items) {
+      productList.innerHTML = '';
+      if (items.length === 0) {
+        productList.innerHTML = '<p style="text-align: center; grid-column: 1/-1; color: #888;">등록된 상품이 없습니다.</p>';
+        return;
+      }
 
-    <script>
-        const ADMIN_PASSWORD = "9654";
-        const initialCategories = ['전체', '나이키', '아디다스', '뉴발란스'];
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <img class="product-img" src="${item.image}" alt="${item.title}">
+          <div class="product-info">
+            <div class="product-title">${item.title}</div>
+            <div class="product-price">${Number(item.price).toLocaleString()}원</div>
+            <a href="https://www.daangn.com" target="_blank" class="btn-buy">💬 당근 채팅으로 문의하기</a>
+          </div>
+        `;
+        productList.appendChild(card);
+      });
+    }
 
-        // 기본 샘플 상품 데이터
-        const initialShoes = [
-            {
-                id: "1",
-                category: "나이키",
-                brand: "나이키",
-                name: "에어포스 1 '07 로우 화이트",
-                price: 129000,
-                size: "270",
-                status: "미착용 새상품",
-                desc: "정품 나이키 상자 포함 완벽한 새상품입니다.",
-                image: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=500&auto=format&fit=crop&q=80"
-            }
-        ];
+    // 실행
+    loadProducts();
 
-        let categories = JSON.parse(localStorage.getItem('shoes_categories')) || initialCategories;
-        let shoes = JSON.parse(localStorage.getItem('shoes_data')) || initialShoes;
-        let activeCategory = '전체';
-        let isEditMode = false;
+    const productList = document.getElementById('product-list');
 
-        function saveToStorage() {
-            localStorage.setItem('shoes_categories', JSON.stringify(categories));
-            localStorage.setItem('shoes_data', JSON.stringify(shoes));
-        }
+    function renderProducts(items) {
+      productList.innerHTML = '';
+      items.forEach(item => {
+        // 당근마켓 채팅이나 오픈채팅으로 연결할 수 있는 링크 (원하시는 주소로 변경 가능)
+        const chatUrl = "https://www.daangn.5kr"; // 혹은 본인의 당근 프로필/채팅 링크
 
-        function toggleEditMode() {
-            if(!isEditMode) {
-                const inputPw = prompt("관리자 비밀번호를 입력하세요:");
-                if(inputPw !== ADMIN_PASSWORD) {
-                    if(inputPw !== null) alert("비밀번호가 올바르지 않습니다.");
-                    return;
-                }
-            }
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <img class="product-img" src="${item.image}" alt="${item.title}">
+          <div class="product-info">
+            <div class="product-title">${item.title}</div>
+            <div class="product-price">${Number(item.price).toLocaleString()}원</div>
+            <a href="https://www.daangn.com" target="_blank" class="btn-buy">💬 당근 채팅으로 문의하기</a>
+          </div>
+        `;
+        productList.appendChild(card);
+      });
+    }
 
-            isEditMode = !isEditMode;
-            const btn = document.getElementById('editToggleBtn');
-            const text = document.getElementById('editToggleText');
-            const lockIcon = document.getElementById('lockIcon');
-
-            if(isEditMode) {
-                btn.className = "bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center space-x-1.5 transition shadow";
-                text.innerText = "🛠️ 편집 모드 ON (로그아웃)";
-                lockIcon.className = "fa-solid fa-unlock";
-                document.getElementById('resetBtn').classList.remove('hidden');
-                document.getElementById('addCatBtn').classList.remove('hidden');
-                document.getElementById('addShoeBtn').classList.remove('hidden');
-            } else {
-                btn.className = "bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center space-x-1.5 transition shadow";
-                text.innerText = "관리자 로그인";
-                lockIcon.className = "fa-solid fa-lock";
-                document.getElementById('resetBtn').classList.add('hidden');
-                document.getElementById('addCatBtn').classList.add('hidden');
-                document.getElementById('addShoeBtn').classList.add('hidden');
-                saveToStorage();
-            }
-            renderCategories();
-            renderShoes();
-        }
-
-        function renderCategories() {
-            const container = document.getElementById('categoryContainer');
-            container.innerHTML = categories.map(cat => `
-                <div class="flex items-center space-x-1 bg-white border ${activeCategory === cat ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-slate-200 text-slate-600'} rounded-full px-3.5 py-1.5 text-xs whitespace-nowrap transition cursor-pointer">
-                    <span onclick="setCategory('${cat}')">${cat}</span>
-                    ${isEditMode && cat !== '전체' ? `<button onclick="deleteCategory('${cat}')" class="text-slate-400 hover:text-rose-500 ml-1">×</button>` : ''}
-                </div>
-            `).join('');
-        }
-
-        function setCategory(cat) {
-            activeCategory = cat;
-            renderCategories();
-            renderShoes();
-        }
-
-        function addCategory() {
-            const name = prompt("새로 추가할 카테고리 이름을 입력하세요 (예: 아식스, 크록스)");
-            if(name && !categories.includes(name.trim())) {
-                categories.push(name.trim());
-                saveToStorage();
-                renderCategories();
-            }
-        }
-
-        function deleteCategory(cat) {
-            if(confirm(`'${cat}' 카테고리를 삭제하시겠습니까?`)) {
-                categories = categories.filter(c => c !== cat);
-                if(activeCategory === cat) activeCategory = '전체';
-                saveToStorage();
-                renderCategories();
-                renderShoes();
-            }
-        }
-
-        function renderShoes() {
-            const grid = document.getElementById('shoeGrid');
-            const filtered = activeCategory === '전체' ? shoes : shoes.filter(s => s.category === activeCategory);
-
-            if(!filtered || filtered.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
-                        <i class="fa-solid fa-box-open text-slate-300 text-4xl mb-3 block"></i>
-                        <p class="text-slate-500 text-sm font-medium">등록된 신발 상품이 없습니다.</p>
-                        ${isEditMode ? '<p class="text-slate-400 text-xs mt-1">상단의 <strong>[새 신발 추가]</strong> 버튼을 눌러 상품을 올려보세요.</p>' : ''}
-                    </div>`;
-                return;
-            }
-
-            grid.innerHTML = filtered.map(shoe => `
-                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between relative group cursor-pointer" onclick="openDetailModal('${shoe.id}')">
-                    <div>
-                        <div class="h-48 bg-slate-100 overflow-hidden relative">
-                            <img src="${shoe.image}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                            <span class="absolute top-3 left-3 bg-slate-900/80 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm font-medium">${shoe.brand}</span>
-                        </div>
-                        <div class="p-4">
-                            <h4 class="font-bold text-slate-800 text-sm mb-1 line-clamp-1">${shoe.name}</h4>
-                            <p class="text-xs text-indigo-600 font-semibold mb-2">사이즈: ${shoe.size}mm | ${shoe.status}</p>
-                            <p class="text-base font-extrabold text-slate-900">${Number(shoe.price).toLocaleString()}원</p>
-                        </div>
-                    </div>
-                    <div class="p-4 pt-0 space-y-2" onclick="event.stopPropagation()">
-                        <button onclick="openCarrotGenerator('${shoe.id}')" class="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-2 rounded-xl transition flex items-center justify-center space-x-1.5 shadow-sm">
-                            <i class="fa-solid fa-carrot"></i>
-                            <span>당근글 생성</span>
-                        </button>
-                        ${isEditMode ? `
-                            <div class="flex space-x-1 pt-1">
-                                <button onclick="openShoeModal('${shoe.id}')" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-1.5 rounded-lg font-medium">수정</button>
-                                <button onclick="deleteShoe('${shoe.id}')" class="w-1/2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs py-1.5 rounded-lg font-medium">삭제</button>
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function openDetailModal(id) {
-            const shoe = shoes.find(s => s.id === id);
-            if(!shoe) return;
-
-            document.getElementById('detailImage').src = shoe.image;
-            document.getElementById('detailBrand').innerText = shoe.brand;
-            document.getElementById('detailName').innerText = shoe.name;
-            document.getElementById('detailPrice').innerText = Number(shoe.price).toLocaleString() + '원';
-            document.getElementById('detailCategory').innerText = shoe.category;
-            document.getElementById('detailSize').innerText = shoe.size + 'mm';
-            document.getElementById('detailStatus').innerText = shoe.status;
-            document.getElementById('detailDesc').innerText = shoe.desc || '등록된 상세 설명이 없습니다.';
-            
-            document.getElementById('detailCarrotBtn').onclick = () => {
-                closeDetailModal();
-                openCarrotGenerator(shoe.id);
-            };
-
-            document.getElementById('detailModal').classList.remove('hidden');
-        }
-
-        function closeDetailModal() {
-            document.getElementById('detailModal').classList.add('hidden');
-        }
-
-        function handleImageUpload(e) {
-            const file = e.target.files[0];
-            if(file) {
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    document.getElementById('shoeImage').value = evt.target.result;
-                    document.getElementById('previewImg').src = evt.target.result;
-                    document.getElementById('imagePreview').classList.remove('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function openShoeModal(id = null) {
-            const select = document.getElementById('shoeCategory');
-            select.innerHTML = categories.filter(c => c !== '전체').map(c => `<option value="${c}">${c}</option>`).join('');
-
-            if(id) {
-                const shoe = shoes.find(s => s.id === id);
-                document.getElementById('modalTitle').innerText = "신발 정보 수정";
-                document.getElementById('shoeId').value = shoe.id;
-                document.getElementById('shoeCategory').value = shoe.category;
-                document.getElementById('shoeBrand').value = shoe.brand;
-                document.getElementById('shoeName').value = shoe.name;
-                document.getElementById('shoePrice').value = shoe.price;
-                document.getElementById('shoeSize').value = shoe.size;
-                document.getElementById('shoeStatus').value = shoe.status;
-                document.getElementById('shoeDesc').value = shoe.desc || '';
-                document.getElementById('shoeImage').value = shoe.image;
-                document.getElementById('previewImg').src = shoe.image;
-                document.getElementById('imagePreview').classList.remove('hidden');
-            } else {
-                document.getElementById('modalTitle').innerText = "새 신발 등록";
-                document.getElementById('shoeForm').reset();
-                document.getElementById('shoeId').value = '';
-                document.getElementById('shoeImage').value = '';
-                document.getElementById('imagePreview').classList.add('hidden');
-            }
-            document.getElementById('shoeModal').classList.remove('hidden');
-        }
-
-        function closeShoeModal() {
-            document.getElementById('shoeModal').classList.add('hidden');
-        }
-
-        function saveShoe(e) {
-            e.preventDefault();
-            const id = document.getElementById('shoeId').value || Date.now().toString();
-            const image = document.getElementById('shoeImage').value || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80';
-
-            const newShoe = {
-                id,
-                category: document.getElementById('shoeCategory').value,
-                brand: document.getElementById('shoeBrand').value,
-                name: document.getElementById('shoeName').value,
-                price: Number(document.getElementById('shoePrice').value),
-                size: document.getElementById('shoeSize').value,
-                status: document.getElementById('shoeStatus').value,
-                desc: document.getElementById('shoeDesc').value,
-                image
-            };
-
-            const idx = shoes.findIndex(s => s.id === id);
-            if(idx > -1) shoes[idx] = newShoe;
-            else shoes.push(newShoe);
-
-            saveToStorage();
-            renderShoes();
-            closeShoeModal();
-        }
-
-        function deleteShoe(id) {
-            if(confirm('이 신발을 정말 삭제하시겠습니까?')) {
-                shoes = shoes.filter(s => s.id !== id);
-                saveToStorage();
-                renderShoes();
-            }
-        }
-
-        function openCarrotGenerator(id) {
-            const shoe = shoes.find(s => s.id === id);
-            const title = `[${shoe.status.includes('새') ? '새상품' : '급매'}] ${shoe.brand} ${shoe.name} ${shoe.size} (정품/바로구매 가능)`;
-            
-            const body = `[${shoe.brand} / ${shoe.name} / ${shoe.size}mm]
-
-비채팅 바로구매(안전결제/택배) 환영합니다!
-글이 올라와 있다면 바로 결제해 주셔도 됩니다. :)
-
-■ 상품 정보
-- 브랜드: ${shoe.brand}
-- 모델명: ${shoe.name}
-- 표기 사이즈: ${shoe.size}mm
-- 판매 가격: ${Number(shoe.price).toLocaleString()}원
-
-■ 상품 상태
-- 사용감/상태: ${shoe.status}
-- 상세 설명: ${shoe.desc || '실물 사진과 동일한 깨끗한 상태입니다.'}
-
-■ 배송 안내 (바로구매 가능)
-- GS25 / CU 알뜰반값택배 가능
-- 평일 오후 4시 이전 결제 시 당일 포장 및 편의점 접수
-- 꼼꼼하게 이중 안전 포장해서 보내드립니다.
-
------------------------------------
-연관 검색어
-${shoe.brand} ${shoe.name} ${shoe.size} 운동화 스니커즈 러닝화 단화 로퍼 구두 샌들 슬리퍼 새상품 미착용 실착1회 발편한 데일리 남녀공용 택배거래 바로구매`;
-
-            document.getElementById('carrotTitle').value = title;
-            document.getElementById('carrotBody').value = body;
-            document.getElementById('carrotModal').classList.remove('hidden');
-        }
-
-        function closeCarrotModal() {
-            document.getElementById('carrotModal').classList.add('hidden');
-        }
-
-        function copyToClipboard(elementId) {
-            const input = document.getElementById(elementId);
-            input.select();
-            document.execCommand('copy');
-            alert('클립보드에 복사되었습니다!');
-        }
-
-        function resetData() {
-            if(confirm('저장된 모든 데이터를 삭제하고 초기화하시겠습니까?')) {
-                localStorage.clear();
-                categories = initialCategories;
-                shoes = initialShoes;
-                location.reload();
-            }
-        }
-
-        renderCategories();
-        renderShoes();
-    </script>
+    // 화면에 상품 뿌리기 실행
+    renderProducts(sampleProducts);
+  </script>
 </body>
 </html>
